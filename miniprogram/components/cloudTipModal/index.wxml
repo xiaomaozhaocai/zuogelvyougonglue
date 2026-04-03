@@ -1,0 +1,9 @@
+<view class="modal" wx:if="{{showTip}}">
+  <view class="modal-content">
+    <view class="modal-title">{{title}}</view>
+    <view class="modal-content">{{content}}</view>
+    <view class="modal-footer">
+      <button bindtap="onClose">确定</button>
+    </view>
+  </view>
+</view>

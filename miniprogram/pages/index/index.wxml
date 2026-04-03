@@ -1,0 +1,73 @@
+<view class="container">
+  <view class="header">
+    <text class="title">做个旅游攻略</text>
+    <text class="subtitle">你的AI旅行助手，快速生成旅游攻略，行程规划</text>
+    <view class="count">今日剩余生成次数：{{remainingCount}} / {{maxCount}}</view>
+  </view>
+  
+  <view class="input-section">
+    <text class="input-label">输入主题或选择示例</text>
+    <textarea class="input-box" placeholder="例如：武汉一日游、韩国一日游" value="{{inputValue}}" bindinput="onInputChange" auto-height />
+    <view class="travel-companion-section">
+      <text class="section-title">同行人员</text>
+      <view class="companion-buttons">
+        <button class="companion-btn" bindtap="showAgePicker" data-type="son">儿子</button>
+        <button class="companion-btn" bindtap="showAgePicker" data-type="daughter">女儿</button>
+        <button class="companion-btn" bindtap="showAgePicker" data-type="father">爸爸</button>
+        <button class="companion-btn" bindtap="showAgePicker" data-type="mother">妈妈</button>
+        <button class="companion-btn" bindtap="showAgePicker" data-type="father1">岳父</button>
+        <button class="companion-btn" bindtap="showAgePicker" data-type="mother1">岳母</button>
+        <button class="companion-btn" bindtap="showAgePicker" data-type="father2">公公</button>
+        <button class="companion-btn" bindtap="showAgePicker" data-type="mother2">婆婆</button>
+      </view>
+    </view>
+    <button class="generate-btn {{remainingCount <= 0 ? 'disabled' : ''}}" bindtap="generate攻略" disabled="{{remainingCount <= 0}}">{{remainingCount <= 0 ? '明日再来' : '立即生成'}}</button>
+  </view>
+  
+  <!-- 年龄选择器 -->
+  <view class="age-picker-modal" wx:if="{{agePickerVisible}}">
+    <view class="modal-content">
+      <view class="modal-header">
+        <text class="modal-title">选择年龄</text>
+        <text class="modal-close" bindtap="closeAgePicker">×</text>
+      </view>
+      <view class="picker-container">
+        <picker mode="selector" range="{{ageRange}}" value="{{selectedAgeIndex}}" bindchange="onAgeChange">
+          <view class="picker-view">
+            <text class="picker-text">{{ageRange[selectedAgeIndex]}} 岁</text>
+          </view>
+        </picker>
+      </view>
+      <view class="modal-footer">
+        <button class="cancel-btn" bindtap="closeAgePicker">取消</button>
+        <button class="confirm-btn" bindtap="confirmAge">确认</button>
+      </view>
+    </view>
+  </view>
+  
+  <!-- 返回顶部按钮 -->
+  <view class="back-to-top" bindtap="backToTop" wx:if="{{showBackToTop}}">
+    <view class="back-to-top-icon">↑</view>
+  </view>
+  
+  <view class="cases-section">
+    <view class="cases-header">
+      <text class="cases-title">热门案例</text>
+      <text class="refresh-btn" bindtap="refreshCases">换一批</text>
+    </view>
+    <view wx:for="{{cases}}" wx:key="index" class="case-item" bindtap="selectCase" data-case="{{item}}">
+      <text class="case-text">{{item}}</text>
+      <text class="case-arrow">→</text>
+    </view>
+  </view>
+  
+  <view class="result-section" wx:if="{{result}}">
+    <view class="result-header">
+      <text class="result-title">生成结果</text>
+      <text class="copy-btn" bindtap="copyResult">复制</text>
+    </view>
+    <view class="result-content">
+      <text>{{result}}</text>
+    </view>
+  </view>
+</view>
