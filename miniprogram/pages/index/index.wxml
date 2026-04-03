@@ -28,7 +28,7 @@
   <view class="age-picker-modal" wx:if="{{agePickerVisible}}">
     <view class="modal-content">
       <view class="modal-header">
-        <text class="modal-title">选择年龄</text>
+        <text class="modal-title">点击选择年龄</text>
         <text class="modal-close" bindtap="closeAgePicker">×</text>
       </view>
       <view class="picker-container">

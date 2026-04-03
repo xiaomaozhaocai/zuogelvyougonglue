@@ -151,13 +151,12 @@ Page({
     // this.callDeepSeek(inputValue);
 
     // --- 方案 2: 调用 腾讯混元 (Hunyuan) API (通过云函数) ---
-    // this.callHunyuanCloudFunction(inputValue);
+    this.callHunyuanCloudFunction(inputValue);
 
     // --- 方案 3: 调用 自有后端模型 API ---
     // this.callCustomBackend(inputValue);
 
-    // 默认执行 DeepSeek
-    this.callDeepSeek(inputValue);
+    // 默认执行 腾讯混元 (Hunyuan) API
   },
 
   // 1. DeepSeek API 调用逻辑
@@ -175,11 +174,11 @@ Page({
         messages: [
           {
             role: 'system',
-            content: '你是一位专业的旅游博主，擅长撰写详细、实用且吸引人的旅游攻略。请根据用户的需求，以专业旅游博主的身份，生成一篇符合小红书笔记风格的旅游攻略。笔记应包含以下要素：\n1. 醒目的标题\n2. 详细的行程安排\n3. 住宿、交通、美食推荐\n4. 实用小贴士\n5. 精美的结尾总结\n7. 使用小红书常见的表情符号和标签\n请确保内容生动有趣，信息准确，格式美观，符合小红书用户的阅读习惯。'
+            content: '请根据用户的需求，从专业旅游博主的角度，生成一篇精良实用的旅游攻略。笔记应包含以下要素：\n1. 醒目的标题\n2. 详细的行程安排\n3. 住宿、交通、美食推荐\n4. 实用小贴士\n5. 精美的结尾总结\n7. 使用小红书常见的表情符号和标签\n请确保内容生动有趣，信息准确，格式美观，符合小红书用户的阅读习惯。'
           },
           {
             role: 'user',
-            content: `请以专业旅游博主的身份，为"${content}"生成一篇详细的旅游攻略，采用小红书笔记格式。`
+            content: `请以专业旅游博主的身份，为"${content}"生成一篇详细的旅游攻略`
           }
         ],
         temperature: 0.7
@@ -220,8 +219,17 @@ Page({
         wx.hideLoading();
         this.setData({
           remainingCount: remainingCount - 1,
-          result: res.result.content
+          result: res.result.content,
+          showBackToTop: true // 生成结果后显示返回顶部按钮
         });
+        
+        // 结果生成后，滚动到结果区域
+        setTimeout(() => {
+          wx.pageScrollTo({
+            selector: '.result-section',
+            duration: 500
+          });
+        }, 100);
       },
       fail: (err) => {
         wx.hideLoading();
