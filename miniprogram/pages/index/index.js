@@ -24,13 +24,13 @@ Page({
     this.setData({
       ageRange: ageRange
     });
-    
-    // 添加页面滚动监听
-    wx.onPageScroll((res) => {
-      // 当页面滚动距离大于 300rpx 时显示返回顶部按钮，否则隐藏
-      this.setData({
-        showBackToTop: res.scrollTop > 300
-      });
+  },
+  
+  // 页面滚动监听
+  onPageScroll(res) {
+    // 当页面滚动距离大于 300rpx 时显示返回顶部按钮，否则隐藏
+    this.setData({
+      showBackToTop: res.scrollTop > 300
     });
   },
 
@@ -125,6 +125,7 @@ Page({
 
   generate攻略() {
     const { inputValue, remainingCount } = this.data;
+    const app = getApp();
     
     if (!inputValue) {
       wx.showToast({
@@ -142,21 +143,67 @@ Page({
       return;
     }
 
-    // 显示加载状态
-    wx.showLoading({
-      title: '生成中...'
-    });
+    // 检查云开发是否可用
+    if (!wx.cloud) {
+      wx.showToast({
+        title: '云开发未初始化，请检查基础库版本',
+        icon: 'none'
+      });
+      return;
+    }
 
-    // --- 方案 1: 调用 DeepSeek API (当前方案) ---
-    // this.callDeepSeek(inputValue);
+    // 检查 app.globalData 是否存在
+    if (!app.globalData) {
+      console.error('app.globalData 未定义');
+      wx.showToast({
+        title: '应用初始化失败，请重启小程序',
+        icon: 'none'
+      });
+      return;
+    }
 
-    // --- 方案 2: 调用 腾讯混元 (Hunyuan) API (通过云函数) ---
-    this.callHunyuanCloudFunction(inputValue);
+    // 检查云开发是否可用
+    if (!app.globalData.cloudAvailable) {
+      console.error('云开发不可用，请检查基础库版本');
+      wx.showToast({
+        title: '云开发不可用，请检查基础库版本',
+        icon: 'none'
+      });
+      return;
+    }
 
-    // --- 方案 3: 调用 自有后端模型 API ---
-    // this.callCustomBackend(inputValue);
+    // 检查云开发是否初始化完成
+    if (!app.globalData.cloudInitialized) {
+      // 显示加载状态
+      wx.showLoading({ title: '初始化云开发...' });
+      
+      // 尝试重新初始化
+      console.log('云开发未初始化，尝试重新初始化...');
+      wx.cloud.init({
+        env: app.globalData.env,
+        traceUser: true,
+        success: () => {
+          console.log('云开发重新初始化成功');
+          app.globalData.cloudInitialized = true;
+          wx.hideLoading();
+          // 初始化成功后调用 AI 模型
+          this.callHunyuanCloudAI(inputValue);
+        },
+        fail: (err) => {
+          console.error('云开发重新初始化失败:', err);
+          wx.hideLoading();
+          wx.showToast({
+            title: `云开发初始化失败: ${err.errMsg || '未知错误'}`,
+            icon: 'none',
+            duration: 3000
+          });
+        }
+      });
+      return;
+    }
 
-    // 默认执行 腾讯混元 (Hunyuan) API
+    // 云开发已初始化，直接调用 AI 模型
+    this.callHunyuanCloudAI(inputValue);
   },
 
   // 1. DeepSeek API 调用逻辑
@@ -167,7 +214,7 @@ Page({
       method: 'POST',
       header: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer sk-d3b0e7a53b2242d4b3b361c42379e8ea' // 建议移至云函数
+        'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}` // 建议移至云函数
       },
       data: {
         model: 'deepseek-chat',
@@ -206,36 +253,79 @@ Page({
     });
   },
 
-  // 2. 腾讯混元 API 调用示例 (推荐通过微信云函数，避免暴露 Key)
-  callHunyuanCloudFunction(content) {
+  // 2. 腾讯混元 API 调用示例 (使用云开发 AI 能力)
+  async callHunyuanCloudAI(content) {
     const { remainingCount } = this.data;
-    // 假设已在云开发后台创建了名为 'hunyuan_api' 的云函数
-    wx.cloud.callFunction({
-      name: 'hunyuan_api',
-      data: {
-        prompt: content
-      },
-      success: (res) => {
-        wx.hideLoading();
-        this.setData({
-          remainingCount: remainingCount - 1,
-          result: res.result.content,
-          showBackToTop: true // 生成结果后显示返回顶部按钮
-        });
+    
+    try {
+      // 显示加载状态
+      wx.showLoading({ title: '生成中...' });
+      
+      // 初始化结果
+      let result = '';
+      
+      // 使用云开发 AI 能力调用混元模型
+      console.log('开始调用混元模型...');
+      const res = await wx.cloud.extend.AI.createModel("hunyuan-exp").streamText({
+        data: {
+          model: "hunyuan-turbos-latest",
+          messages: [
+            {
+              role: "system",
+              content: "请根据用户的需求，从专业旅游博主的角度，生成一篇精良实用的旅游攻略。笔记应包含以下要素：\n1. 醒目的标题\n2. 详细的行程安排\n3. 住宿、交通、美食推荐\n4. 实用小贴士\n5. 精美的结尾总结\n7. 使用小红书常见的表情符号和标签\n请确保内容生动有趣，信息准确，格式美观，符合小红书用户的阅读习惯。"
+            },
+            {
+              role: "user",
+              content: `请以专业旅游博主的身份，为"${content}"生成一篇详细的旅游攻略，返回格式不要用markdown格式，要有emoji表情让文字读起来更加亲切`
+            }
+          ],
+          temperature: 0.7
+        }
+      });
+      
+      console.log('混元模型调用成功，开始处理流式输出');
+      
+      // 处理流式输出
+      for await (let event of res.eventStream) {
+        if (event.data === "[DONE]") {
+          break;
+        }
+        const data = JSON.parse(event.data);
         
-        // 结果生成后，滚动到结果区域
-        setTimeout(() => {
-          wx.pageScrollTo({
-            selector: '.result-section',
-            duration: 500
+        // 打印生成文本内容
+        const text = data?.choices?.[0]?.delta?.content;
+        if (text) {
+          result += text;
+          // 实时更新结果显示
+          this.setData({
+            result: result
           });
-        }, 100);
-      },
-      fail: (err) => {
-        wx.hideLoading();
-        wx.showToast({ title: '混元生成失败', icon: 'none' });
+        }
       }
-    });
+      
+      // 生成完成
+      wx.hideLoading();
+      this.setData({
+        remainingCount: remainingCount - 1,
+        showBackToTop: true // 生成结果后显示返回顶部按钮
+      });
+      
+      // 结果生成后，滚动到结果区域
+      setTimeout(() => {
+        wx.pageScrollTo({
+          selector: '.result-section',
+          duration: 500
+        });
+      }, 100);
+    } catch (error) {
+      wx.hideLoading();
+      console.error('调用混元模型失败:', error);
+      wx.showToast({ 
+        title: `混元生成失败: ${error.message || '未知错误'}`, 
+        icon: 'none',
+        duration: 3000
+      });
+    }
   },
 
   // 3. 自有后端或公众号模型调用逻辑
@@ -246,7 +336,7 @@ Page({
       method: 'POST',
       header: {
         'Content-Type': 'application/json',
-        'X-API-KEY': 'your-secret-key' // 自有 API 鉴权
+        'X-API-KEY': process.env.CUSTOM_BACKEND_API_KEY // 自有 API 鉴权
       },
       data: {
         query: content,
