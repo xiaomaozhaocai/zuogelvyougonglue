@@ -1,6 +1,6 @@
 App({
   globalData: {
-    env: "cloudbase-1g7py9yuacf4c841",
+    env: "zuogelvyougonglue-7eo8va563e4709",
     cloudInitialized: false,
     cloudAvailable: false
   },
@@ -16,6 +16,7 @@ App({
     }
     
     this.globalData.cloudAvailable = true;
+    console.log('马上开始初始化云开发...');
     
     // 初始化云开发
     wx.cloud.init({

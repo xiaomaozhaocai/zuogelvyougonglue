@@ -1,6 +1,7 @@
 {
   "miniprogramRoot": "miniprogram/",
   "cloudfunctionRoot": "cloudfunctions/",
+  "cloudEnvId": "zuogelvyougonglue-7eo8va563e4709",
   "setting": {
     "urlCheck": true,
     "es6": true,
